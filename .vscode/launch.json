@@ -1,0 +1,27 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch TestBed",
+            "type": "cppdbg",
+            "request": "launch",
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {"name": "LD_LIBRARY_PATH", "value": "${workspaceFolder}/bin/x64-Linux-debug:${workspaceFolder}/../flecs/bin/x64-Linux-debug"},
+            ],
+            "program": "${workspaceFolder}/testbed1/bin/x64-Linux-debug/testbed1",
+            "osx": {
+                "MIMode": "lldb",
+                "targetArchitecture": "arm64",
+                "externalConsole": false,
+            },
+            "linux": {
+                "externalConsole": false,
+            }
+        }
+    ]
+}

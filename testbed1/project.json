@@ -1,0 +1,16 @@
+{
+    "id": "testbed1",
+    "type": "application",
+    "value": {
+        "author": "Jane Doe",
+        "description": "Coding tutorials for movie stars",
+        "use": [
+            "flecs"
+        ],
+        "public": false
+    },
+    "lang.c": {
+        "cflags": ["-std=c11", "-DSOKOL_GLCORE33"],
+        "lib": ["m", "GL", "X11", "Xi", "Xcursor", "dl"]
+    }
+}

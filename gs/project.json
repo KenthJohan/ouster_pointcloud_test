@@ -1,0 +1,17 @@
+{
+    "id": "gs",
+    "type": "package",
+    "value": {
+        "language": "c"
+    },
+    "dependee": {
+        "${os linux}": {
+            "lang.c": {
+                "lib": ["m"]
+            }
+        }
+    },
+    "lang.c": {
+        "cflags": ["-Wno-sign-compare", "-D_GLFW_X11"]
+    }
+}
