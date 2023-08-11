@@ -1,7 +1,3 @@
-#include <testbed1.h>
-#include <flecs.h>
-#include <stdio.h>
-#include <unistd.h>
 // sudo apt install libxcursor-dev
 // sudo apt install libxinerama-dev
 // sudo apt-get install libxi-dev
@@ -10,6 +6,14 @@
 //  Demonstrate simple hardware-instancing using a static geometry buffer
 //  and a dynamic instance-data buffer.
 //------------------------------------------------------------------------------
+
+#include <testbed1.h>
+#include <flecs.h>
+#include <stdio.h>
+#include <unistd.h>
+#include "EgStr.h"
+#include "EgShaders.h"
+
 #include <stdlib.h> // rand()
 #include "sokol_app.h"
 #include "sokol_gfx.h"
@@ -43,12 +47,90 @@ static struct {
     char * file_buffer_shader_fs;
     sg_shader shd;
     ecs_world_t * world;
+    float frame_time;
 } state;
+
+
+
+
+void SystemDraw(ecs_iter_t *it)
+{
+    // model-view-projection matrix
+    hmm_mat4 proj = HMM_Perspective(60.0f, sapp_widthf()/sapp_heightf(), 0.01f, 50.0f);
+    hmm_mat4 view = HMM_LookAt(HMM_Vec3(0.0f, 1.5f, 12.0f), HMM_Vec3(0.0f, 0.0f, 0.0f), HMM_Vec3(0.0f, 1.0f, 0.0f));
+    hmm_mat4 view_proj = HMM_MultiplyMat4(proj, view);
+    state.ry += 60.0f * it->delta_time;
+    vs_params_t vs_params;
+    vs_params.mvp = HMM_MultiplyMat4(view_proj, HMM_Rotate(state.ry, HMM_Vec3(0.0f, 1.0f, 0.0f)));
+
+    sg_begin_default_pass(&state.pass_action, sapp_width(), sapp_height());
+    if(state.pip.id > 0)
+    {
+        sg_apply_pipeline(state.pip);
+        sg_apply_bindings(&state.bind);
+        sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
+        sg_draw(0, 24, state.cur_num_particles);
+    }
+    else
+    {
+        printf("Hej!\n");
+        state.pass_action.colors[0].clear_value.g += 0.01;
+    }
+    __dbgui_draw();
+    sg_end_pass();
+    sg_commit();
+}
+
+
+
+
+void SystemParticleEmit(ecs_iter_t *it)
+{
+    // emit new particles
+    for (int i = 0; i < NUM_PARTICLES_EMITTED_PER_FRAME; i++) {
+        if (state.cur_num_particles < MAX_PARTICLES) {
+            state.pos[state.cur_num_particles] = HMM_Vec3(0.0, 0.0, 0.0);
+            state.vel[state.cur_num_particles] = HMM_Vec3(
+                ((float)(rand() & 0x7FFF) / 0x7FFF) - 0.5f,
+                ((float)(rand() & 0x7FFF) / 0x7FFF) * 0.5f + 2.0f,
+                ((float)(rand() & 0x7FFF) / 0x7FFF) - 0.5f);
+            state.cur_num_particles++;
+        } else {
+            break;
+        }
+    }
+}
+
+
+void SystemParticleUpdate(ecs_iter_t *it)
+{
+    // update particle positions
+    for (int i = 0; i < state.cur_num_particles; i++) {
+        state.vel[i].Y -= 1.0f * state.frame_time;
+        state.pos[i].X += state.vel[i].X * state.frame_time;
+        state.pos[i].Y += state.vel[i].Y * state.frame_time;
+        state.pos[i].Z += state.vel[i].Z * state.frame_time;
+        // bounce back from 'ground'
+        if (state.pos[i].Y < -2.0f) {
+            state.pos[i].Y = -1.8f;
+            state.vel[i].Y = -state.vel[i].Y;
+            state.vel[i].X *= 0.8f; state.vel[i].Y *= 0.8f; state.vel[i].Z *= 0.8f;
+        }
+    }
+
+    // update instance data
+    sg_update_buffer(state.bind.vertex_buffers[1], &(sg_range){
+        .ptr = state.pos,
+        .size = (size_t)state.cur_num_particles * sizeof(hmm_vec3)
+    });
+}
+
+
+
 
 
 static void fetch_callback(const sfetch_response_t* response) {
     if (response->fetched) {
-        ecs_sleepf(4.0);
         //response->data.ptr;
         //(int)response->data.size;
         if((state.pip.id == 0) && state.file_buffer_shader_vs[0] && state.file_buffer_shader_fs[0])
@@ -106,6 +188,12 @@ static void fetch_callback(const sfetch_response_t* response) {
 
 void init(void) {
     state.world = ecs_init();
+    ECS_IMPORT(state.world, EgStr);
+    ECS_IMPORT(state.world, EgShaders);
+    ECS_SYSTEM(state.world, SystemParticleEmit, EcsOnUpdate, 0);
+    ECS_SYSTEM(state.world, SystemParticleUpdate, EcsOnUpdate, 0);
+    ECS_SYSTEM(state.world, SystemDraw, EcsOnUpdate, 0);
+
     sg_setup(&(sg_desc){
         .context = sapp_sgcontext(),
         .logger.func = slog_func,
@@ -186,75 +274,16 @@ void init(void) {
 }
 
 void frame(void) {
-    const float frame_time = (float)(sapp_frame_duration());
+    state.frame_time = (float)(sapp_frame_duration());
     sfetch_dowork();
 
-    // emit new particles
-    for (int i = 0; i < NUM_PARTICLES_EMITTED_PER_FRAME; i++) {
-        if (state.cur_num_particles < MAX_PARTICLES) {
-            state.pos[state.cur_num_particles] = HMM_Vec3(0.0, 0.0, 0.0);
-            state.vel[state.cur_num_particles] = HMM_Vec3(
-                ((float)(rand() & 0x7FFF) / 0x7FFF) - 0.5f,
-                ((float)(rand() & 0x7FFF) / 0x7FFF) * 0.5f + 2.0f,
-                ((float)(rand() & 0x7FFF) / 0x7FFF) - 0.5f);
-            state.cur_num_particles++;
-        } else {
-            break;
-        }
-    }
 
-    // update particle positions
-    for (int i = 0; i < state.cur_num_particles; i++) {
-        state.vel[i].Y -= 1.0f * frame_time;
-        state.pos[i].X += state.vel[i].X * frame_time;
-        state.pos[i].Y += state.vel[i].Y * frame_time;
-        state.pos[i].Z += state.vel[i].Z * frame_time;
-        // bounce back from 'ground'
-        if (state.pos[i].Y < -2.0f) {
-            state.pos[i].Y = -1.8f;
-            state.vel[i].Y = -state.vel[i].Y;
-            state.vel[i].X *= 0.8f; state.vel[i].Y *= 0.8f; state.vel[i].Z *= 0.8f;
-        }
-    }
 
-    // update instance data
-    sg_update_buffer(state.bind.vertex_buffers[1], &(sg_range){
-        .ptr = state.pos,
-        .size = (size_t)state.cur_num_particles * sizeof(hmm_vec3)
-    });
 
-    // model-view-projection matrix
-    hmm_mat4 proj = HMM_Perspective(60.0f, sapp_widthf()/sapp_heightf(), 0.01f, 50.0f);
-    hmm_mat4 view = HMM_LookAt(HMM_Vec3(0.0f, 1.5f, 12.0f), HMM_Vec3(0.0f, 0.0f, 0.0f), HMM_Vec3(0.0f, 1.0f, 0.0f));
-    hmm_mat4 view_proj = HMM_MultiplyMat4(proj, view);
-    state.ry += 60.0f * frame_time;
-    vs_params_t vs_params;
-    vs_params.mvp = HMM_MultiplyMat4(view_proj, HMM_Rotate(state.ry, HMM_Vec3(0.0f, 1.0f, 0.0f)));
 
     // ...and draw
-    sg_begin_default_pass(&state.pass_action, sapp_width(), sapp_height());
-    if(state.pip.id > 0)
-    {
-        sg_apply_pipeline(state.pip);
-        sg_apply_bindings(&state.bind);
-        sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
-        sg_draw(0, 24, state.cur_num_particles);
-    }
-    else
-    {
-        printf("Hej!\n");
-        state.pass_action.colors[0].clear_value.g += 0.01;
-    }
-    __dbgui_draw();
-    sg_end_pass();
-    sg_commit();
 
-
-
-
-
-
-
+    ecs_progress(state.world, 0);
 
 }
 

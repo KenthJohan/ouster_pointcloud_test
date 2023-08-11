@@ -29,6 +29,8 @@
         "dbgui.h": "c",
         "handmademath.h": "c",
         "instancing-sapp.glsl.h": "c",
-        "sokol_fetch.h": "c"
+        "sokol_fetch.h": "c",
+        "egstr.h": "c",
+        "egsokolshader.h": "c"
     }
 }
