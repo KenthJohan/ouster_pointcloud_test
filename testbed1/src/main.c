@@ -1,6 +1,7 @@
 #include <testbed1.h>
 #include <flecs.h>
 #include <stdio.h>
+#include <unistd.h>
 // sudo apt install libxcursor-dev
 // sudo apt install libxinerama-dev
 // sudo apt-get install libxi-dev
@@ -14,6 +15,7 @@
 #include "sokol_gfx.h"
 #include "sokol_log.h"
 #include "sokol_glue.h"
+#include "sokol_fetch.h"
 #define HANDMADE_MATH_IMPLEMENTATION
 #define HANDMADE_MATH_NO_SSE
 #include "HandmadeMath.h"
@@ -23,6 +25,10 @@
 #define MAX_PARTICLES (512 * 1024)
 #define NUM_PARTICLES_EMITTED_PER_FRAME (10)
 
+
+
+
+
 static struct {
     sg_pass_action pass_action;
     sg_pipeline pip;
@@ -31,14 +37,90 @@ static struct {
     int cur_num_particles;
     hmm_vec3 pos[MAX_PARTICLES];
     hmm_vec3 vel[MAX_PARTICLES];
+
+
+    char * file_buffer_shader_vs;
+    char * file_buffer_shader_fs;
+    sg_shader shd;
+    ecs_world_t * world;
 } state;
 
+
+static void fetch_callback(const sfetch_response_t* response) {
+    if (response->fetched) {
+        ecs_sleepf(4.0);
+        //response->data.ptr;
+        //(int)response->data.size;
+        if((state.pip.id == 0) && state.file_buffer_shader_vs[0] && state.file_buffer_shader_fs[0])
+        {
+            printf("::::::::::::::file_buffer_shader_vs::::::::::::::\n %s\n\n", state.file_buffer_shader_vs);
+            printf("::::::::::::::file_buffer_shader_fs::::::::::::::\n %s\n\n", state.file_buffer_shader_fs);
+            
+            sg_shader_desc desc = {0};
+            desc.attrs[0].name = "pos";
+            desc.attrs[1].name = "color0";
+            desc.attrs[2].name = "inst_pos";
+            desc.vs.source = state.file_buffer_shader_vs;
+            desc.vs.entry = "main";
+            desc.vs.uniform_blocks[0].size = 64;
+            desc.vs.uniform_blocks[0].layout = SG_UNIFORMLAYOUT_STD140;
+            desc.vs.uniform_blocks[0].uniforms[0].name = "vs_params";
+            desc.vs.uniform_blocks[0].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;
+            desc.vs.uniform_blocks[0].uniforms[0].array_count = 4;
+            desc.fs.source = state.file_buffer_shader_fs;
+            desc.fs.entry = "main";
+            desc.label = "instancing_shader";
+            state.shd = sg_make_shader(&desc);
+
+            printf("shd.id %i\n", state.shd.id);
+            // a pipeline object
+            state.pip = sg_make_pipeline(&(sg_pipeline_desc){
+                .layout = {
+                    // vertex buffer at slot 1 must step per instance
+                    .buffers[1].step_func = SG_VERTEXSTEP_PER_INSTANCE,
+                    .attrs = {
+                        [ATTR_vs_pos]      = { .format=SG_VERTEXFORMAT_FLOAT3, .buffer_index=0 },
+                        [ATTR_vs_color0]   = { .format=SG_VERTEXFORMAT_FLOAT4, .buffer_index=0 },
+                        [ATTR_vs_inst_pos] = { .format=SG_VERTEXFORMAT_FLOAT3, .buffer_index=1 }
+                    }
+                },
+                .shader = state.shd,
+                .index_type = SG_INDEXTYPE_UINT16,
+                .cull_mode = SG_CULLMODE_BACK,
+                .depth = {
+                    .compare = SG_COMPAREFUNC_LESS_EQUAL,
+                    .write_enabled = true,
+                },
+                .label = "instancing-pipeline"
+            });
+        }
+    } else if (response->failed) {
+        // if loading the file failed, set clear color to red
+        state.pass_action = (sg_pass_action) {
+            .colors[0] = { .load_action = SG_LOADACTION_CLEAR, .clear_value = { 1.0f, 0.0f, 0.0f, 1.0f } }
+        };
+    }
+}
+
+#define FILE_BUFFER_SHADER_SIZE (1024 * 10)
+
 void init(void) {
+    state.world = ecs_init();
     sg_setup(&(sg_desc){
         .context = sapp_sgcontext(),
         .logger.func = slog_func,
     });
     __dbgui_setup(sapp_sample_count());
+
+    state.file_buffer_shader_vs = calloc(FILE_BUFFER_SHADER_SIZE, 1);
+    state.file_buffer_shader_fs = calloc(FILE_BUFFER_SHADER_SIZE, 1);
+
+    sfetch_setup(&(sfetch_desc_t){
+        .max_requests = 2,
+        .num_channels = 3,
+        .num_lanes = 3,
+        .logger.func = slog_func,
+    });
 
     // a pass action for the default render pass
     state.pass_action = (sg_pass_action) {
@@ -82,33 +164,30 @@ void init(void) {
         .label = "instance-data"
     });
 
-    // a shader
-    sg_shader shd = sg_make_shader(instancing_shader_desc(sg_query_backend()));
 
-    // a pipeline object
-    state.pip = sg_make_pipeline(&(sg_pipeline_desc){
-        .layout = {
-            // vertex buffer at slot 1 must step per instance
-            .buffers[1].step_func = SG_VERTEXSTEP_PER_INSTANCE,
-            .attrs = {
-                [ATTR_vs_pos]      = { .format=SG_VERTEXFORMAT_FLOAT3, .buffer_index=0 },
-                [ATTR_vs_color0]   = { .format=SG_VERTEXFORMAT_FLOAT4, .buffer_index=0 },
-                [ATTR_vs_inst_pos] = { .format=SG_VERTEXFORMAT_FLOAT3, .buffer_index=1 }
-            }
-        },
-        .shader = shd,
-        .index_type = SG_INDEXTYPE_UINT16,
-        .cull_mode = SG_CULLMODE_BACK,
-        .depth = {
-            .compare = SG_COMPAREFUNC_LESS_EQUAL,
-            .write_enabled = true,
-        },
-        .label = "instancing-pipeline"
+    sfetch_send(&(sfetch_request_t){
+        .path = "./src/shader.vs.glsl",
+        .callback = fetch_callback,
+        .buffer = (sfetch_range_t){ state.file_buffer_shader_vs, FILE_BUFFER_SHADER_SIZE }
     });
+
+
+    sfetch_send(&(sfetch_request_t){
+        .path = "./src/shader.fs.glsl",
+        .callback = fetch_callback,
+        .buffer = (sfetch_range_t){ state.file_buffer_shader_fs, FILE_BUFFER_SHADER_SIZE }
+    });
+
+
+    // a shader
+    //sg_shader shd = sg_make_shader(instancing_shader_desc(sg_query_backend()));
+
+
 }
 
 void frame(void) {
     const float frame_time = (float)(sapp_frame_duration());
+    sfetch_dowork();
 
     // emit new particles
     for (int i = 0; i < NUM_PARTICLES_EMITTED_PER_FRAME; i++) {
@@ -154,13 +233,29 @@ void frame(void) {
 
     // ...and draw
     sg_begin_default_pass(&state.pass_action, sapp_width(), sapp_height());
-    sg_apply_pipeline(state.pip);
-    sg_apply_bindings(&state.bind);
-    sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
-    sg_draw(0, 24, state.cur_num_particles);
+    if(state.pip.id > 0)
+    {
+        sg_apply_pipeline(state.pip);
+        sg_apply_bindings(&state.bind);
+        sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
+        sg_draw(0, 24, state.cur_num_particles);
+    }
+    else
+    {
+        printf("Hej!\n");
+        state.pass_action.colors[0].clear_value.g += 0.01;
+    }
     __dbgui_draw();
     sg_end_pass();
     sg_commit();
+
+
+
+
+
+
+
+
 }
 
 void cleanup(void) {
@@ -170,6 +265,10 @@ void cleanup(void) {
 
 sapp_desc sokol_main(int argc, char* argv[]) {
     (void)argc; (void)argv;
+    char buf[100];
+    getcwd(buf,sizeof(buf));
+    printf("cwd: %s\n", buf);
+
     return (sapp_desc){
         .init_cb = init,
         .frame_cb = frame,

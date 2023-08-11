@@ -27,6 +27,8 @@
         "sokol_gfx.h": "c",
         "*.m": "c",
         "dbgui.h": "c",
-        "handmademath.h": "c"
+        "handmademath.h": "c",
+        "instancing-sapp.glsl.h": "c",
+        "sokol_fetch.h": "c"
     }
 }
