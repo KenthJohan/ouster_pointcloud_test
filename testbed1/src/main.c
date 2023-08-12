@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include "EgStr.h"
 #include "EgShaders.h"
+#include "EgCameras.h"
 
 #include <stdlib.h> // rand()
 #include "sokol_app.h"
@@ -20,8 +21,6 @@
 #include "sokol_log.h"
 #include "sokol_glue.h"
 #include "sokol_fetch.h"
-#define HANDMADE_MATH_IMPLEMENTATION
-#define HANDMADE_MATH_NO_SSE
 #include "HandmadeMath.h"
 #include "dbgui/dbgui.h"
 #include "instancing-sapp.glsl.h"
@@ -52,30 +51,31 @@ static struct {
 
 void SystemDraw(ecs_iter_t *it)
 {
-    // model-view-projection matrix
-    hmm_mat4 proj = HMM_Perspective(60.0f, sapp_widthf()/sapp_heightf(), 0.01f, 50.0f);
-    hmm_mat4 view = HMM_LookAt(HMM_Vec3(0.0f, 1.5f, 12.0f), HMM_Vec3(0.0f, 0.0f, 0.0f), HMM_Vec3(0.0f, 1.0f, 0.0f));
-    hmm_mat4 view_proj = HMM_MultiplyMat4(proj, view);
-    state.ry += 60.0f * it->delta_time;
-    vs_params_t vs_params;
-    vs_params.mvp = HMM_MultiplyMat4(view_proj, HMM_Rotate(state.ry, HMM_Vec3(0.0f, 1.0f, 0.0f)));
+	EgCamera *c = ecs_field(it, EgCamera, 1);
+	for (int i = 0; i < it->count; i ++)
+	{
+        vs_params_t vs_params;
+        ecs_os_memcpy_t(&vs_params.mvp, &c[i].mvp, eg_mat4_t);
+        sg_begin_default_pass(&state.pass_action, sapp_width(), sapp_height());
+        if(state.pip.id > 0)
+        {
+            sg_apply_pipeline(state.pip);
+            sg_apply_bindings(&state.bind);
+            sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
+            sg_draw(0, 24, state.cur_num_particles);
+        }
+        else
+        {
+            printf("Hej!\n");
+            state.pass_action.colors[0].clear_value.g += 0.01;
+        }
+        __dbgui_draw();
+        sg_end_pass();
+        sg_commit();
 
-    sg_begin_default_pass(&state.pass_action, sapp_width(), sapp_height());
-    if(state.pip.id > 0)
-    {
-        sg_apply_pipeline(state.pip);
-        sg_apply_bindings(&state.bind);
-        sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
-        sg_draw(0, 24, state.cur_num_particles);
+        c[i].w = sapp_widthf();
+        c[i].h = sapp_heightf();
     }
-    else
-    {
-        printf("Hej!\n");
-        state.pass_action.colors[0].clear_value.g += 0.01;
-    }
-    __dbgui_draw();
-    sg_end_pass();
-    sg_commit();
 }
 
 
@@ -185,9 +185,12 @@ void init(void) {
     state.world = ecs_init();
     ECS_IMPORT(state.world, EgStr);
     ECS_IMPORT(state.world, EgShaders);
+    ECS_IMPORT(state.world, EgCameras);
     ECS_SYSTEM(state.world, SystemParticleEmit, EcsOnUpdate, 0);
     ECS_SYSTEM(state.world, SystemParticleUpdate, EcsOnUpdate, 0);
-    ECS_SYSTEM(state.world, SystemDraw, EcsOnUpdate, 0);
+    ECS_SYSTEM(state.world, SystemDraw, EcsOnUpdate, EgCamera);
+
+    ecs_new(state.world, EgCamera);
 
     sg_setup(&(sg_desc){
         .context = sapp_sgcontext(),

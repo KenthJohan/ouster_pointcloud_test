@@ -31,6 +31,9 @@
         "instancing-sapp.glsl.h": "c",
         "sokol_fetch.h": "c",
         "egstr.h": "c",
-        "egsokolshader.h": "c"
+        "egsokolshader.h": "c",
+        "egcameras.h": "c",
+        "random": "c",
+        "egshaders.h": "c"
     }
 }
