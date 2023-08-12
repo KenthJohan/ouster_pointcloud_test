@@ -34,6 +34,10 @@
         "egsokolshader.h": "c",
         "egcameras.h": "c",
         "random": "c",
-        "egshaders.h": "c"
+        "egshaders.h": "c",
+        "egrendering.h": "c",
+        "egfs.h": "c",
+        "egfetch.h": "c",
+        "egfetcher.h": "c"
     }
 }

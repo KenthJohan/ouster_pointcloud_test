@@ -3,6 +3,10 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "sokol_gfx.h"
+
+#include "EgStr.h"
+
 
 
 #define FLOG(...) fprintf(__VA_ARGS__)
@@ -13,9 +17,27 @@ ECS_COMPONENT_DECLARE(EgShader);
 
 void SystemCompile(ecs_iter_t *it)
 {
-	const EgShader *r = ecs_field(it, EgShader, 1);
+	EgShader *r = ecs_field(it, EgShader, 1);
+	EgText *source_shader_vs = ecs_field(it, EgText, 2);
+	EgText *source_shader_fs = ecs_field(it, EgText, 3);
 	for (int i = 0; i < it->count; i ++)
 	{
+		sg_shader_desc desc = {0};
+		desc.attrs[0].name = "pos";
+		desc.attrs[1].name = "color0";
+		desc.attrs[2].name = "inst_pos";
+		desc.vs.source = source_shader_vs[i].value;
+		desc.vs.entry = "main";
+		desc.vs.uniform_blocks[0].size = 64;
+		desc.vs.uniform_blocks[0].layout = SG_UNIFORMLAYOUT_STD140;
+		desc.vs.uniform_blocks[0].uniforms[0].name = "vs_params";
+		desc.vs.uniform_blocks[0].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;
+		desc.vs.uniform_blocks[0].uniforms[0].array_count = 4;
+		desc.fs.source = source_shader_fs[i].value;
+		desc.fs.entry = "main";
+		desc.label = "instancing_shader";
+		sg_shader shd = sg_make_shader(&desc);
+		r[i].id = shd.id;
 	}
 }
 
@@ -41,6 +63,8 @@ void EgShadersImport(ecs_world_t *world)
 		.add = { ecs_dependson(EcsOnUpdate) }
 		}),
 		.query.filter.terms = {
+			{.id = ecs_id(EgShader), .inout = EcsInOut },
+			{.id = ecs_id(EgShader), .inout = EcsInOut },
 			{.id = ecs_id(EgShader), .inout = EcsInOut },
 		},
 		.callback = SystemCompile

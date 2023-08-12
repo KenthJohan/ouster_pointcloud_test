@@ -14,6 +14,8 @@
 #include "EgStr.h"
 #include "EgShaders.h"
 #include "EgCameras.h"
+#include "EgFs.h"
+#include "EgFetcher.h"
 
 #include <stdlib.h> // rand()
 #include "sokol_app.h"
@@ -23,13 +25,27 @@
 #include "sokol_fetch.h"
 #include "HandmadeMath.h"
 #include "dbgui/dbgui.h"
-#include "instancing-sapp.glsl.h"
+//#include "instancing-sapp.glsl.h"
 
 #define MAX_PARTICLES (512 * 1024)
 #define NUM_PARTICLES_EMITTED_PER_FRAME (10)
 
-
-
+#if !defined(SOKOL_SHDC_ALIGN)
+  #if defined(_MSC_VER)
+    #define SOKOL_SHDC_ALIGN(a) __declspec(align(a))
+  #else
+    #define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))
+  #endif
+#endif
+#define ATTR_vs_pos (0)
+#define ATTR_vs_color0 (1)
+#define ATTR_vs_inst_pos (2)
+#define SLOT_vs_params (0)
+#pragma pack(push,1)
+SOKOL_SHDC_ALIGN(16) typedef struct vs_params_t {
+    hmm_mat4 mvp;
+} vs_params_t;
+#pragma pack(pop)
 
 
 static struct {
@@ -186,11 +202,15 @@ void init(void) {
     ECS_IMPORT(state.world, EgStr);
     ECS_IMPORT(state.world, EgShaders);
     ECS_IMPORT(state.world, EgCameras);
-    ECS_SYSTEM(state.world, SystemParticleEmit, EcsOnUpdate, 0);
-    ECS_SYSTEM(state.world, SystemParticleUpdate, EcsOnUpdate, 0);
+    ECS_IMPORT(state.world, EgFs);
+    ECS_IMPORT(state.world, EgFetcher);
+    ECS_SYSTEM(state.world, SystemParticleEmit, EcsOnUpdate, EgCamera);
+    ECS_SYSTEM(state.world, SystemParticleUpdate, EcsOnUpdate, EgCamera);
     ECS_SYSTEM(state.world, SystemDraw, EcsOnUpdate, EgCamera);
 
-    ecs_new(state.world, EgCamera);
+    //https://www.flecs.dev/explorer/?remote=true
+	ecs_set(state.world, EcsWorld, EcsRest, {.port = 0});
+	ecs_plecs_from_file(state.world, "./src/config.flecs");
 
     sg_setup(&(sg_desc){
         .context = sapp_sgcontext(),
@@ -284,6 +304,7 @@ void cleanup(void) {
 
 sapp_desc sokol_main(int argc, char* argv[]) {
     (void)argc; (void)argv;
+    setvbuf(stdout, NULL, _IONBF, 0);
     char buf[100];
     getcwd(buf,sizeof(buf));
     printf("cwd: %s\n", buf);
