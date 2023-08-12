@@ -41,13 +41,10 @@ static struct {
     int cur_num_particles;
     hmm_vec3 pos[MAX_PARTICLES];
     hmm_vec3 vel[MAX_PARTICLES];
-
-
     char * file_buffer_shader_vs;
     char * file_buffer_shader_fs;
     sg_shader shd;
     ecs_world_t * world;
-    float frame_time;
 } state;
 
 
@@ -82,8 +79,6 @@ void SystemDraw(ecs_iter_t *it)
 }
 
 
-
-
 void SystemParticleEmit(ecs_iter_t *it)
 {
     // emit new particles
@@ -106,10 +101,10 @@ void SystemParticleUpdate(ecs_iter_t *it)
 {
     // update particle positions
     for (int i = 0; i < state.cur_num_particles; i++) {
-        state.vel[i].Y -= 1.0f * state.frame_time;
-        state.pos[i].X += state.vel[i].X * state.frame_time;
-        state.pos[i].Y += state.vel[i].Y * state.frame_time;
-        state.pos[i].Z += state.vel[i].Z * state.frame_time;
+        state.vel[i].Y -= 1.0f * it->delta_time;
+        state.pos[i].X += state.vel[i].X * it->delta_time;
+        state.pos[i].Y += state.vel[i].Y * it->delta_time;
+        state.pos[i].Z += state.vel[i].Z * it->delta_time;
         // bounce back from 'ground'
         if (state.pos[i].Y < -2.0f) {
             state.pos[i].Y = -1.8f;
@@ -274,20 +269,12 @@ void init(void) {
 }
 
 void frame(void) {
-    state.frame_time = (float)(sapp_frame_duration());
     sfetch_dowork();
-
-
-
-
-
-    // ...and draw
-
     ecs_progress(state.world, 0);
-
 }
 
 void cleanup(void) {
+    ecs_fini(state.world);
     __dbgui_shutdown();
     sg_shutdown();
 }
