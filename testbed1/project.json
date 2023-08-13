@@ -10,6 +10,7 @@
         "public": false
     },
     "lang.c": {
+        "include": ["src/eg", "src/sokol"],
         "cflags": ["-std=c11", "-DSOKOL_GLCORE33"],
         "lib": ["m", "GL", "X11", "Xi", "Xcursor", "dl"]
     }

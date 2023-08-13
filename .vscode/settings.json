@@ -47,6 +47,7 @@
         "utility": "c",
         "string_view": "c",
         "initializer_list": "c",
-        "string": "c"
+        "string": "c",
+        "egbasics.h": "c"
     }
 }
