@@ -14,9 +14,10 @@ typedef struct
 static void fetch_callback(const sfetch_response_t* response) {
     if (response->fetched) {
 		userdata_t * user_data = (userdata_t *)response->user_data;
-		char * rs = response->buffer.ptr;
+		char const * rs = response->buffer.ptr;
+		ecs_i32_t size = response->buffer.size;
 		//printf("Success fetched:\n %s\n\n", rs);
-		ecs_set_pair(user_data->world, user_data->e, EgText, EgFsFile, {rs});
+		ecs_set_pair(user_data->world, user_data->e, EgText, EgFsFile, {rs, size});
     } else if (response->failed) {
 
     }
@@ -30,11 +31,12 @@ void System_Send(ecs_iter_t *it)
 	for (int i = 0; i < it->count; i ++)
 	{
 		userdata_t user_data = {it->world, it->entities[i]};
-		char * memory = ecs_os_calloc(file_size[i].size);
+		ecs_i32_t size = file_size[i].size + 1;
+		char * memory = ecs_os_calloc(size);
 		sfetch_send(&(sfetch_request_t){
 			.path = path[i].value,
 			.callback = fetch_callback,
-			.buffer = (sfetch_range_t){ memory, file_size[i].size },
+			.buffer = (sfetch_range_t){ memory, size },
 			.user_data = (sfetch_range_t){ &user_data, sizeof(userdata_t) },
 		});
 	}
@@ -42,7 +44,7 @@ void System_Send(ecs_iter_t *it)
 
 void System_Print(ecs_iter_t *it)
 {
-	EgText *path = ecs_field(it, EgText, 4);
+	//EgText *path = ecs_field(it, EgText, 4);
 	for (int i = 0; i < it->count; i ++)
 	{
 		//printf("text :\n %s\n\n\n", path[i].value);

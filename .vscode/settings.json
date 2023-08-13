@@ -38,6 +38,15 @@
         "egrendering.h": "c",
         "egfs.h": "c",
         "egfetch.h": "c",
-        "egfetcher.h": "c"
+        "egfetcher.h": "c",
+        "system_error": "c",
+        "array": "c",
+        "functional": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "string": "c"
     }
 }

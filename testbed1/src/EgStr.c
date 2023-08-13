@@ -16,12 +16,14 @@ ECS_COMPONENT_DECLARE(EgBuffer);
 ECS_COPY(EgText, dst, src, {
 	FLOG(stdout, "EgText::Copy\n");
 	ecs_os_strset((char**)&dst->value, src->value);
+	dst->size = src->size;
 })
 
 ECS_MOVE(EgText, dst, src, {
 	FLOG(stdout, "EgText::MOVE\n");
 	ecs_os_free((char*)dst->value);
 	dst->value = src->value;
+	dst->size = src->size;
 	src->value = NULL;
 })
 
@@ -80,6 +82,7 @@ void EgStrImport(ecs_world_t *world)
 	.entity = ecs_id(EgText),
 	.members = {
 	{ .name = "value", .type = ecs_id(ecs_string_t) },
+	{ .name = "size", .type = ecs_id(ecs_i32_t) },
 	}
 	});
 }

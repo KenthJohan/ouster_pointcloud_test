@@ -3,6 +3,7 @@
 //
 // To load this file yourself, call ecs_plecs_from_file("expressions.flecs");
 
+using eg.basics
 using eg.fs
 using eg.str
 using eg.cameras
@@ -27,6 +28,8 @@ file_shader_vs {
 
 
 shader1 {
+	- eg.shaders.Shader
+	//- (Read, file_shader_vs)
 	- (TypeLangGlslVs, file_shader_vs)
 	- (TypeLangGlslFs, file_shader_fs)
 }

@@ -5,6 +5,7 @@
 
 typedef struct {
 	ecs_string_t value;
+	ecs_i32_t size;
 } EgText;
 
 typedef struct {

@@ -16,6 +16,7 @@
 #include "EgCameras.h"
 #include "EgFs.h"
 #include "EgFetcher.h"
+#include "EgBasics.h"
 
 #include <stdlib.h> // rand()
 #include "sokol_app.h"
@@ -199,6 +200,7 @@ static void fetch_callback(const sfetch_response_t* response) {
 
 void init(void) {
     state.world = ecs_init();
+    ECS_IMPORT(state.world, EgBasics);
     ECS_IMPORT(state.world, EgStr);
     ECS_IMPORT(state.world, EgShaders);
     ECS_IMPORT(state.world, EgCameras);
@@ -207,6 +209,8 @@ void init(void) {
     ECS_SYSTEM(state.world, SystemParticleEmit, EcsOnUpdate, EgCamera);
     ECS_SYSTEM(state.world, SystemParticleUpdate, EcsOnUpdate, EgCamera);
     ECS_SYSTEM(state.world, SystemDraw, EcsOnUpdate, EgCamera);
+
+
 
     //https://www.flecs.dev/explorer/?remote=true
 	ecs_set(state.world, EcsWorld, EcsRest, {.port = 0});
@@ -302,7 +306,56 @@ void cleanup(void) {
     sg_shutdown();
 }
 
+
+
+void test()
+{
+    ecs_world_t *world = ecs_mini();
+
+    ECS_TAG(world, TagA);
+    ECS_TAG(world, TagB);
+    ECS_TAG(world, Rel);
+    //ecs_add_id(world, Rel, EcsAcyclic);
+    ecs_add_id(world, Rel, EcsTraversable);
+
+    ecs_entity_t parent = ecs_new(world, TagB);
+    ecs_entity_t child = ecs_new_w_pair(world, Rel, parent);
+
+    ecs_query_t *q = ecs_query_init(world, &(ecs_query_desc_t){
+        .filter.terms = {
+            { TagA },
+            { TagB, .src.id = child, .src.trav = Rel, .src.flags = EcsUp }
+        }
+    });
+    assert(q != NULL);
+
+    ecs_entity_t e = ecs_new_id(world);
+    ecs_add(world, e, TagA);
+
+    ecs_iter_t it = ecs_query_iter(world, q);
+    assert (ecs_query_next(&it) == true);
+    assert(it.count == 1);
+    assert(it.entities[0] == e);
+    assert(it.sources[0] == 0);
+    assert(it.sources[1] == parent);
+    assert (ecs_query_next(&it) == false);
+
+    ecs_remove_pair(world, child, Rel, parent);
+    it = ecs_query_iter(world, q);
+    assert (ecs_query_next(&it) == false);
+
+    ecs_fini(world);
+}
+
+
+
+
+
+
+
+
 sapp_desc sokol_main(int argc, char* argv[]) {
+    //test();
     (void)argc; (void)argv;
     setvbuf(stdout, NULL, _IONBF, 0);
     char buf[100];

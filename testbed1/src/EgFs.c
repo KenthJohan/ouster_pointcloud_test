@@ -152,6 +152,10 @@ void EgFsImport(ecs_world_t *world)
 	ECS_TAG_DEFINE(world, EgFsTypeLangGlslVs);
 	ECS_TAG_DEFINE(world, EgFsTypeLangGlslFs);
 	
+
+    ecs_add_id(world, EgFsTypeLangGlslVs, EcsTraversable);
+    ecs_add_id(world, EgFsTypeLangGlslFs, EcsTraversable);
+
 	ECS_COMPONENT_DEFINE(world, EgFsMonitorDir);
 	ECS_COMPONENT_DEFINE(world, EgFsSize);
 
