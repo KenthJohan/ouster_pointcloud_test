@@ -20,12 +20,10 @@ ECS_COMPONENT_DECLARE(EgShader);
 
 void SystemCompile(ecs_iter_t *it)
 {
-	EgShader *r = ecs_field(it, EgShader, 1);
-	EgText *source_shader_vs = ecs_field(it, EgText, 2);
-	EgText *source_shader_fs = ecs_field(it, EgText, 3);
+	EgText *source_shader_vs = ecs_field(it, EgText, 1);
+	EgText *source_shader_fs = ecs_field(it, EgText, 2);
 	for (int i = 0; i < it->count; i ++)
 	{
-		ecs_add(it->world, it->entities[i], EgShaderCompiled);
 		printf("source_shader_vs %s\n", source_shader_vs[i].value);
 		printf("source_shader_fs %s\n", source_shader_fs[i].value);
 		sg_shader_desc desc = {0};
@@ -43,7 +41,7 @@ void SystemCompile(ecs_iter_t *it)
 		desc.fs.entry = "main";
 		desc.label = "instancing_shader";
 		sg_shader shd = sg_make_shader(&desc);
-		r[i].id = shd.id;
+		ecs_set(it->world, it->entities[i], EgShader, {shd.id});
 	}
 }
 
@@ -76,11 +74,11 @@ void EgShadersImport(ecs_world_t *world)
 		.add = { ecs_dependson(EcsOnUpdate) }
 		}),
 		.query.filter.terms = {
-			{.id = ecs_id(EgShader), .inout = EcsInOut },
-			//{.id = ecs_pair(ecs_id(EgText), EgFsFile), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = EgRead },
 			{.id = ecs_pair(ecs_id(EgText), EgFsFile), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = EgFsTypeLangGlslVs },
 			{.id = ecs_pair(ecs_id(EgText), EgFsFile), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = EgFsTypeLangGlslFs },
-			{.id = EgShaderCompiled, .oper=EcsNot }, // Adds this
+			{.id = ecs_id(EgShader), .inout = EcsInOut, .oper=EcsNot }, // Adds this
+			//{.id = ecs_pair(ecs_id(EgText), EgFsFile), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = EgRead },
+			//{.id = EgShaderCompiled, .oper=EcsNot }, // Adds this
 			//{.id = EgFsFile, .inout = EcsInOut, .src.flags = EcsDown, .src.trav = EgFsTypeLangGlslVs },
 			//{.id = EgFsFile, .inout = EcsInOut, .src.flags = EcsUp, .src.trav = EgFsTypeLangGlslFs },
 		},

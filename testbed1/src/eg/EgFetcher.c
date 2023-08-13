@@ -3,6 +3,7 @@
 #include "EgStr.h"
 #include "sokol_fetch.h"
 
+#include "sokol_log.h"
 
 typedef struct 
 {
@@ -51,12 +52,26 @@ void System_Print(ecs_iter_t *it)
 	}
 }
 
+void System_Pump(ecs_iter_t *it)
+{
+    sfetch_dowork();
+}
+
+
 
 void EgFetcherImport(ecs_world_t *world)
 {
 	ECS_MODULE(world, EgFetcher);
 	ecs_set_name_prefix(world, "Eg");
 
+    sfetch_setup(&(sfetch_desc_t){
+        .max_requests = 2,
+        .num_channels = 3,
+        .num_lanes = 3,
+        .logger.func = slog_func,
+    });
+
+	ECS_SYSTEM(world, System_Pump, EcsOnUpdate, 0);
 
 	ecs_system(world, {
 		.entity = ecs_entity(world, {

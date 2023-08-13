@@ -7,6 +7,7 @@ using eg.basics
 using eg.fs
 using eg.str
 using eg.cameras
+using eg.shaders
 using flecs.meta
 
 camera1 {
@@ -28,8 +29,20 @@ file_shader_vs {
 
 
 shader1 {
-	- eg.shaders.Shader
+	- eg.shaders.compile
 	//- (Read, file_shader_vs)
 	- (TypeLangGlslVs, file_shader_vs)
 	- (TypeLangGlslFs, file_shader_fs)
+}
+
+pip {
+	- eg.rendering.RenderingPipelineCreate
+	- (Use, shader1)
+}
+
+
+
+draw {
+	- (Use, camera1)
+	- (Use, pip)
 }
