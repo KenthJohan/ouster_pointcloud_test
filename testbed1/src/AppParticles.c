@@ -88,7 +88,6 @@ void AppParticlesImport(ecs_world_t *world)
 	.members = {
 	{ .name = "max_num_particles", .type = ecs_id(ecs_i32_t) },
 	{ .name = "cur_num_particles", .type = ecs_id(ecs_i32_t) },
-	{ .name = "ty", .type = ecs_id(ecs_f32_t) },
 	{ .name = "pos", .type = ecs_id(ecs_uptr_t) },
 	{ .name = "vel", .type = ecs_id(ecs_uptr_t) },
 	}

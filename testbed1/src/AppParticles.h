@@ -9,7 +9,6 @@
 typedef struct {
     ecs_i32_t max_num_particles;
     ecs_i32_t cur_num_particles;
-    ecs_f32_t ry;
     hmm_vec3 * pos;
     hmm_vec3 * vel;
 } AppParticlesDesc;

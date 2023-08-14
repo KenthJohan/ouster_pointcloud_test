@@ -73,7 +73,9 @@ void SystemDraw(ecs_iter_t *it)
 
 void SystemParticleCopyGpu(ecs_iter_t *it)
 {
-	AppParticlesDesc *particles = ecs_field(it, AppParticlesDesc, 1);
+	EgCamera *c = ecs_field(it, EgCamera, 1);
+	EgRenderingPipeline *p = ecs_field(it, EgRenderingPipeline, 2);
+	AppParticlesDesc *particles = ecs_field(it, AppParticlesDesc, 3);
 	for (int j = 0; j < it->count; j ++)
 	{
 		AppParticlesDesc * p = particles + 0;
@@ -140,16 +142,20 @@ void AppDrawingImport(ecs_world_t *world)
     });
 
 
+    
 	ecs_system(world, {
 		.entity = ecs_entity(world, {
 		.name = "SystemParticleCopyGpu",
 		.add = { ecs_dependson(EcsOnUpdate) }
 		}),
 		.query.filter.terms = {
+			{.id = ecs_id(EgCamera), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = ecs_id(EgUse) },
+			{.id = ecs_id(EgRenderingPipeline), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = ecs_id(EgUse) },
 			{.id = ecs_id(AppParticlesDesc), .inout = EcsInOut},
 		},
 		.callback = SystemParticleCopyGpu
 	});
+    
 	
 
 	ecs_system(world, {
@@ -160,7 +166,7 @@ void AppDrawingImport(ecs_world_t *world)
 		.query.filter.terms = {
 			{.id = ecs_id(EgCamera), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = ecs_id(EgUse) },
 			{.id = ecs_id(EgRenderingPipeline), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = ecs_id(EgUse) },
-			//{.id = ecs_id(AppParticlesDesc), .inout = EcsInOut},
+			{.id = ecs_id(AppParticlesDesc), .inout = EcsInOut},
 		},
 		.callback = SystemDraw
 	});

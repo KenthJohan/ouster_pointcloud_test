@@ -35,6 +35,9 @@ void EgCamerasImport(ecs_world_t *world)
 	.entity = ecs_id(EgCamera),
 	.members = {
 	{ .name = "mvp", .type = ecs_id(ecs_f32_t), .count = (4*4) },
+	{ .name = "ry", .type = ecs_id(ecs_f32_t) },
+	{ .name = "w", .type = ecs_id(ecs_f32_t) },
+	{ .name = "h", .type = ecs_id(ecs_f32_t) },
 	}
 	});
 

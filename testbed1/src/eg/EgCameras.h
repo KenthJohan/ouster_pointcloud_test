@@ -8,9 +8,9 @@ typedef union
 
 typedef struct {
 	eg_mat4_t mvp;
-    float ry;
-    float w;
-    float h;
+    ecs_f32_t ry;
+    ecs_f32_t w;
+    ecs_f32_t h;
 } EgCamera;
 
 extern ECS_COMPONENT_DECLARE(EgCamera);

@@ -31,6 +31,8 @@
 
 
 ecs_world_t * world;
+ecs_u64_t frame_number = 0;
+
 
 void init(void) {
 
@@ -57,6 +59,8 @@ void init(void) {
 }
 
 void frame(void) {
+    frame_number++;
+    //printf("%ju\n", frame_number);
     ecs_progress(world, 0);
 }
 
