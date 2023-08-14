@@ -19,6 +19,7 @@
 #include "EgBasics.h"
 #include "EgRendering.h"
 #include "AppDrawing.h"
+#include "AppParticles.h"
 
 #include <stdlib.h> // rand()
 #include "sokol_app.h"
@@ -48,6 +49,7 @@ void init(void) {
     ECS_IMPORT(world, EgFetcher);
     ECS_IMPORT(world, EgRendering);
     ECS_IMPORT(world, AppDrawing);
+    ECS_IMPORT(world, AppParticles);
 
     //https://www.flecs.dev/explorer/?remote=true
 	ecs_set(world, EcsWorld, EcsRest, {.port = 0});

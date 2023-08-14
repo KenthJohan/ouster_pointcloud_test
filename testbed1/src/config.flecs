@@ -10,6 +10,9 @@ using eg.cameras
 using eg.shaders
 using flecs.meta
 
+
+
+
 camera1 {
 	- Camera
 }
@@ -45,4 +48,5 @@ pip {
 draw {
 	- (Use, camera1)
 	- (Use, pip)
+	- app.particles.ParticlesDesc{512 * 1024}
 }

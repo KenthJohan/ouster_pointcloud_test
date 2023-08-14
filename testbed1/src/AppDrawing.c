@@ -2,6 +2,7 @@
 #include "EgCameras.h"
 #include "EgRendering.h"
 #include "EgBasics.h"
+#include "AppParticles.h"
 
 #include "HandmadeMath.h"
 #include "sokol_gfx.h"
@@ -10,9 +11,6 @@
 #include <stdio.h>
 
 ECS_COMPONENT_DECLARE(AppDraw);
-
-#define MAX_PARTICLES (512 * 1024)
-#define NUM_PARTICLES_EMITTED_PER_FRAME (10)
 
 #if !defined(SOKOL_SHDC_ALIGN)
   #if defined(_MSC_VER)
@@ -35,18 +33,15 @@ SOKOL_SHDC_ALIGN(16) typedef struct vs_params_t {
 static struct {
     sg_pass_action pass_action;
     sg_bindings bind;
-    float ry;
-    int cur_num_particles;
-    hmm_vec3 pos[MAX_PARTICLES];
-    hmm_vec3 vel[MAX_PARTICLES];
 } state;
 
 
 
 void SystemDraw(ecs_iter_t *it)
 {
-	EgRenderingPipeline *p = ecs_field(it, EgRenderingPipeline, 2);
 	EgCamera *c = ecs_field(it, EgCamera, 1);
+	EgRenderingPipeline *p = ecs_field(it, EgRenderingPipeline, 2);
+	AppParticlesDesc *h = ecs_field(it, AppParticlesDesc, 3);
 	for (int i = 0; i < it->count; i ++)
 	{
         vs_params_t vs_params;
@@ -57,7 +52,7 @@ void SystemDraw(ecs_iter_t *it)
             sg_apply_pipeline((sg_pipeline){p[i].id});
             sg_apply_bindings(&state.bind);
             sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
-            sg_draw(0, 24, state.cur_num_particles);
+            sg_draw(0, 24, h->cur_num_particles);
         }
         else
         {
@@ -74,45 +69,20 @@ void SystemDraw(ecs_iter_t *it)
 }
 
 
-void SystemParticleEmit(ecs_iter_t *it)
+
+
+void SystemParticleCopyGpu(ecs_iter_t *it)
 {
-    // emit new particles
-    for (int i = 0; i < NUM_PARTICLES_EMITTED_PER_FRAME; i++) {
-        if (state.cur_num_particles < MAX_PARTICLES) {
-            state.pos[state.cur_num_particles] = HMM_Vec3(0.0, 0.0, 0.0);
-            state.vel[state.cur_num_particles] = HMM_Vec3(
-                ((float)(rand() & 0x7FFF) / 0x7FFF) - 0.5f,
-                ((float)(rand() & 0x7FFF) / 0x7FFF) * 0.5f + 2.0f,
-                ((float)(rand() & 0x7FFF) / 0x7FFF) - 0.5f);
-            state.cur_num_particles++;
-        } else {
-            break;
-        }
-    }
-}
-
-
-void SystemParticleUpdate(ecs_iter_t *it)
-{
-    // update particle positions
-    for (int i = 0; i < state.cur_num_particles; i++) {
-        state.vel[i].Y -= 1.0f * it->delta_time;
-        state.pos[i].X += state.vel[i].X * it->delta_time;
-        state.pos[i].Y += state.vel[i].Y * it->delta_time;
-        state.pos[i].Z += state.vel[i].Z * it->delta_time;
-        // bounce back from 'ground'
-        if (state.pos[i].Y < -2.0f) {
-            state.pos[i].Y = -1.8f;
-            state.vel[i].Y = -state.vel[i].Y;
-            state.vel[i].X *= 0.8f; state.vel[i].Y *= 0.8f; state.vel[i].Z *= 0.8f;
-        }
-    }
-
-    // update instance data
-    sg_update_buffer(state.bind.vertex_buffers[1], &(sg_range){
-        .ptr = state.pos,
-        .size = (size_t)state.cur_num_particles * sizeof(hmm_vec3)
-    });
+	AppParticlesDesc *particles = ecs_field(it, AppParticlesDesc, 1);
+	for (int j = 0; j < it->count; j ++)
+	{
+		AppParticlesDesc * p = particles + 0;
+		// update instance data
+		sg_update_buffer(state.bind.vertex_buffers[1], &(sg_range){
+			.ptr = p->pos,
+			.size = (size_t)p->cur_num_particles * sizeof(hmm_vec3)
+		});
+	}
 }
 
 
@@ -124,14 +94,9 @@ void AppDrawingImport(ecs_world_t *world)
     ECS_IMPORT(world, EgBasics);
     ECS_IMPORT(world, EgCameras);
     ECS_IMPORT(world, EgRendering);
-
+    ECS_IMPORT(world, AppParticles);
 
 	ECS_COMPONENT_DEFINE(world, AppDraw);
-
-
-
-
-
 
 
     state.pass_action = (sg_pass_action) {
@@ -175,14 +140,17 @@ void AppDrawingImport(ecs_world_t *world)
     });
 
 
-
-
-
-
-
-
-    ECS_SYSTEM(world, SystemParticleEmit, EcsOnUpdate, EgRenderingPipeline);
-    ECS_SYSTEM(world, SystemParticleUpdate, EcsOnUpdate, EgRenderingPipeline);
+	ecs_system(world, {
+		.entity = ecs_entity(world, {
+		.name = "SystemParticleCopyGpu",
+		.add = { ecs_dependson(EcsOnUpdate) }
+		}),
+		.query.filter.terms = {
+			{.id = ecs_id(AppParticlesDesc), .inout = EcsInOut},
+		},
+		.callback = SystemParticleCopyGpu
+	});
+	
 
 	ecs_system(world, {
 		.entity = ecs_entity(world, {
@@ -192,6 +160,7 @@ void AppDrawingImport(ecs_world_t *world)
 		.query.filter.terms = {
 			{.id = ecs_id(EgCamera), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = ecs_id(EgUse) },
 			{.id = ecs_id(EgRenderingPipeline), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = ecs_id(EgUse) },
+			//{.id = ecs_id(AppParticlesDesc), .inout = EcsInOut},
 		},
 		.callback = SystemDraw
 	});

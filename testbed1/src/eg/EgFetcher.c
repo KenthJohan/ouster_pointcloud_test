@@ -1,3 +1,4 @@
+#include "EgBasics.h"
 #include "EgFetcher.h"
 #include "EgFs.h"
 #include "EgStr.h"
@@ -12,14 +13,17 @@ typedef struct
 } userdata_t;
 
 
-static void fetch_callback(const sfetch_response_t* response) {
-    if (response->fetched) {
+static void fetch_callback(const sfetch_response_t* response)
+{
+    if (response->fetched)
+	{
 		userdata_t * user_data = (userdata_t *)response->user_data;
 		char const * rs = response->buffer.ptr;
 		ecs_i32_t size = response->buffer.size;
-		//printf("Success fetched:\n %s\n\n", rs);
 		ecs_set_pair(user_data->world, user_data->e, EgText, EgFsFile, {rs, size});
-    } else if (response->failed) {
+    }
+	else if (response->failed)
+	{
 
     }
 }
@@ -65,7 +69,7 @@ void EgFetcherImport(ecs_world_t *world)
 	ecs_set_name_prefix(world, "Eg");
 
     sfetch_setup(&(sfetch_desc_t){
-        .max_requests = 2,
+        .max_requests = 4,
         .num_channels = 3,
         .num_lanes = 3,
         .logger.func = slog_func,

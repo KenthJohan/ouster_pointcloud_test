@@ -1,7 +1,5 @@
 #pragma once
 #include "flecs.h"
-
-
 typedef struct {
     ecs_i32_t id;
 } AppDraw;

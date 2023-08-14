@@ -49,6 +49,7 @@
         "initializer_list": "c",
         "string": "c",
         "egbasics.h": "c",
-        "appdrawing.h": "c"
+        "appdrawing.h": "c",
+        "appparticles.h": "c"
     }
 }

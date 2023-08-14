@@ -14,13 +14,13 @@ ECS_COMPONENT_DECLARE(EgBuffer);
 
 
 ECS_COPY(EgText, dst, src, {
-	FLOG(stdout, "EgText::Copy\n");
+	//FLOG(stdout, "EgText::Copy\n");
 	ecs_os_strset((char**)&dst->value, src->value);
 	dst->size = src->size;
 })
 
 ECS_MOVE(EgText, dst, src, {
-	FLOG(stdout, "EgText::MOVE\n");
+	//FLOG(stdout, "EgText::MOVE\n");
 	ecs_os_free((char*)dst->value);
 	dst->value = src->value;
 	dst->size = src->size;
@@ -28,29 +28,29 @@ ECS_MOVE(EgText, dst, src, {
 })
 
 ECS_DTOR(EgText, ptr, {
-	FLOG(stdout, "EgText::DTOR\n");
+	//FLOG(stdout, "EgText::DTOR\n");
 	ecs_os_free((char*)ptr->value);
 })
 
 ECS_CTOR(EgBuffer, ptr, {
-	FLOG(stdout, "EgBuffer::Ctor\n");
+	//FLOG(stdout, "EgBuffer::Ctor\n");
 	ptr->data = NULL;
 })
 
 ECS_DTOR(EgBuffer, ptr, {
-	FLOG(stdout, "EgBuffer::Dtor\n");
+	//FLOG(stdout, "EgBuffer::Dtor\n");
 	if(ptr->data){ecs_os_free(ptr->data);}
 })
 
 ECS_MOVE(EgBuffer, dst, src, {
-	FLOG(stdout, "EgBuffer::Move\n");
+	//FLOG(stdout, "EgBuffer::Move\n");
 	ecs_os_free((char*)dst->data);
 	dst->data = src->data;
 	src->data = NULL;
 })
 
 ECS_COPY(EgBuffer, dst, src, {
-	FLOG(stdout, "EgBuffer::Copy\n");
+	//FLOG(stdout, "EgBuffer::Copy\n");
 })
 
 
