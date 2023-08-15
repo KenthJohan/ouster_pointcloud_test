@@ -12,12 +12,6 @@ using flecs.meta
 
 
 
-
-camera1 {
-	- Camera
-}
-
-
 file_shader_fs {
 	- File
 	- (Text, Path){"./src/shader.fs.glsl"}
@@ -28,25 +22,26 @@ file_shader_vs {
 	- (Text, Path){"./src/shader.vs.glsl"}
 }
 
-
-
-
 shader1 {
-	- eg.shaders.compile
-	//- (Read, file_shader_vs)
+	- eg.shaders.Compile
 	- (TypeLangGlslVs, file_shader_vs)
 	- (TypeLangGlslFs, file_shader_fs)
 }
 
-pip {
-	- eg.rendering.RenderingPipelineCreate
+
+
+buffer1 {
+	- eg.draw.buffers.DrawBuffer{512 * 1024}
+}
+
+draw : buffer1 {
+	- Camera
+	- eg.rendering.RenderingPipeline
 	- (Use, shader1)
 }
 
-
-
-draw {
-	- (Use, camera1)
-	- (Use, pip)
+particles6 : buffer1 {
 	- app.particles.ParticlesDesc{512 * 1024}
 }
+
+

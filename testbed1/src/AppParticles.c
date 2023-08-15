@@ -1,4 +1,8 @@
 #include "AppParticles.h"
+#include "EgBasics.h"
+#include "EgDrawBuffers.h"
+#include "sokol_gfx.h"
+#include <stdio.h>
 
 
 ECS_COMPONENT_DECLARE(AppParticlesDesc);
@@ -11,7 +15,7 @@ void SystemParticleEmit(ecs_iter_t *it)
 	AppParticlesDesc *particles = ecs_field(it, AppParticlesDesc, 1);
 	for (int j = 0; j < it->count; j ++)
 	{
-		AppParticlesDesc * p = particles + 0;
+		AppParticlesDesc * p = particles + j;
 		// emit new particles
 		for (int i = 0; i < NUM_PARTICLES_EMITTED_PER_FRAME; i++)
 		{
@@ -38,7 +42,7 @@ void SystemParticleUpdate(ecs_iter_t *it)
 	AppParticlesDesc *particles = ecs_field(it, AppParticlesDesc, 1);
 	for (int j = 0; j < it->count; j ++)
 	{
-		AppParticlesDesc * p = particles + 0;
+		AppParticlesDesc * p = particles + j;
 		// update particle positions
 		for (int i = 0; i < p->cur_num_particles; i++)
 		{
@@ -74,12 +78,29 @@ void SystemParticleAllocate(ecs_iter_t *it)
 }
 
 
+void SystemAppendBuffer(ecs_iter_t *it)
+{
+    //printf("SystemAppendBuffer %s\n", ecs_get_name(it->world, ecs_field_src(it, 1)));
+	AppParticlesDesc *particles = ecs_field(it, AppParticlesDesc, 1);
+	EgDrawBuffer *buffer = ecs_field(it, EgDrawBuffer, 2);
+	for (int i = 0; i < it->count; i ++)
+	{
+		AppParticlesDesc *p = particles + i;
+		EgDrawBuffer *b = buffer + i;
+
+		sg_range r = {p->pos, p->cur_num_particles * sizeof(hmm_vec3)};
+		sg_append_buffer(b[i].buffer, &r);
+		b->num_instances += p->cur_num_particles;
+	}
+}
 
 
 void AppParticlesImport(ecs_world_t *world)
 {
 	ECS_MODULE(world, AppParticles);
 	ecs_set_name_prefix(world, "App");
+	ECS_IMPORT(world, EgBasics);
+	ECS_IMPORT(world, EgDrawBuffers);
 
 	ECS_COMPONENT_DEFINE(world, AppParticlesDesc);
 
@@ -98,4 +119,31 @@ void AppParticlesImport(ecs_world_t *world)
     ECS_OBSERVER(world, SystemParticleAllocate, EcsOnSet, AppParticlesDesc);
 
 
+
+	ecs_system(world, {
+		.entity = ecs_entity(world, {
+		.name = "SystemAppendBuffer",
+		.add = { ecs_dependson(EcsOnUpdate) }
+		}),
+		.query.filter.terms = {
+			{.id = ecs_id(AppParticlesDesc), .inout = EcsInOut },
+			{.id = ecs_id(EgDrawBuffer), .inout = EcsInOut },
+		},
+		.callback = SystemAppendBuffer
+	});
+
+
+
+	/*
+	ecs_system(world, {
+		.entity = ecs_entity(world, {
+		.name = "SystemAppendBuffer",
+		.add = { ecs_dependson(EcsOnUpdate) }
+		}),
+		.query.filter.terms = {
+			{.id = ecs_id(AppParticlesDesc), .inout = EcsInOut, .src.flags = EcsUp | EcsCascade, .src.trav = ecs_id(EgUse) },
+		},
+		.callback = SystemAppendBuffer
+	});
+	*/
 }

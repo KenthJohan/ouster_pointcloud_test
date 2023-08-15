@@ -5,10 +5,10 @@
 
 typedef struct {
 	ecs_i32_t id;
-} EgShader;
+} EgShadersProgram;
 
-extern ECS_TAG_DECLARE(EgShaderCompiled);
-extern ECS_COMPONENT_DECLARE(EgShader);
+extern ECS_TAG_DECLARE(EgShadersCompile);
+extern ECS_COMPONENT_DECLARE(EgShadersProgram);
 
 
 void EgShadersImport(ecs_world_t *world);

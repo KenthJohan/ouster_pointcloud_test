@@ -14,8 +14,8 @@
 #define FLOG(...) fprintf(__VA_ARGS__)
 
 
-ECS_TAG_DECLARE(EgShaderCompiled);
-ECS_COMPONENT_DECLARE(EgShader);
+ECS_TAG_DECLARE(EgShadersCompile);
+ECS_COMPONENT_DECLARE(EgShadersProgram);
 
 
 void SystemCompile(ecs_iter_t *it)
@@ -41,7 +41,8 @@ void SystemCompile(ecs_iter_t *it)
 		desc.fs.entry = "main";
 		desc.label = "instancing_shader";
 		sg_shader shd = sg_make_shader(&desc);
-		ecs_set(it->world, it->entities[i], EgShader, {shd.id});
+		ecs_set(it->world, it->entities[i], EgShadersProgram, {shd.id});
+		ecs_remove(it->world, it->entities[i], EgShadersCompile);
 	}
 }
 
@@ -49,25 +50,21 @@ void SystemCompile(ecs_iter_t *it)
 void EgShadersImport(ecs_world_t *world)
 {
 	ECS_MODULE(world, EgShaders);
-	ecs_set_name_prefix(world, "Eg");
+	ecs_set_name_prefix(world, "EgShaders");
     ECS_IMPORT(world, EgBasics);
     ECS_IMPORT(world, EgFs);
     ECS_IMPORT(world, EgStr);
 
-	ECS_TAG_DEFINE(world, EgShaderCompiled);
-
-	ECS_COMPONENT_DEFINE(world, EgShader);
+	ECS_TAG_DEFINE(world, EgShadersCompile);
+	ECS_COMPONENT_DEFINE(world, EgShadersProgram);
 
 	ecs_struct(world, {
-	.entity = ecs_id(EgShader),
+	.entity = ecs_id(EgShadersProgram),
 	.members = {
 	{ .name = "id", .type = ecs_id(ecs_i32_t) },
 	}
 	});
 
-	//ECS_SYSTEM(world, SystemCompile, EcsOnUpdate, EgShader, EgText(up(eg.fs.TypeLangGlslVs), eg.fs.File));
-
-	
 	ecs_system(world, {
 		.entity = ecs_entity(world, {
 		.name = "SystemCompile",
@@ -76,11 +73,8 @@ void EgShadersImport(ecs_world_t *world)
 		.query.filter.terms = {
 			{.id = ecs_pair(ecs_id(EgText), EgFsFile), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = EgFsTypeLangGlslVs },
 			{.id = ecs_pair(ecs_id(EgText), EgFsFile), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = EgFsTypeLangGlslFs },
-			{.id = ecs_id(EgShader), .inout = EcsInOut, .oper=EcsNot }, // Adds this
-			//{.id = ecs_pair(ecs_id(EgText), EgFsFile), .inout = EcsInOut, .src.flags = EcsUp, .src.trav = EgRead },
-			//{.id = EgShaderCompiled, .oper=EcsNot }, // Adds this
-			//{.id = EgFsFile, .inout = EcsInOut, .src.flags = EcsDown, .src.trav = EgFsTypeLangGlslVs },
-			//{.id = EgFsFile, .inout = EcsInOut, .src.flags = EcsUp, .src.trav = EgFsTypeLangGlslFs },
+			{.id = ecs_id(EgShadersProgram), .inout = EcsInOut, .oper=EcsNot }, // Adds this
+			{.id = EgShadersCompile }, // Removes this
 		},
 		.callback = SystemCompile
 	});

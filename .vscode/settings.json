@@ -50,6 +50,8 @@
         "string": "c",
         "egbasics.h": "c",
         "appdrawing.h": "c",
-        "appparticles.h": "c"
+        "appparticles.h": "c",
+        "eg_sokol_populate.h": "c",
+        "egdrawbuffers.h": "c"
     }
 }
