@@ -47,9 +47,9 @@ void SystemParticleUpdate(ecs_iter_t *it)
 		for (int i = 0; i < p->cur_num_particles; i++)
 		{
 			p->vel[i].Y -= 1.0f * it->delta_time;
-			p->pos[i].X += p->vel[i].X * it->delta_time;
-			p->pos[i].Y += p->vel[i].Y * it->delta_time;
-			p->pos[i].Z += p->vel[i].Z * it->delta_time;
+			p->pos[i].X += p->vel[i].X * it->delta_time * p->speed;;
+			p->pos[i].Y += p->vel[i].Y * it->delta_time * p->speed;;
+			p->pos[i].Z += p->vel[i].Z * it->delta_time * p->speed;;
 			// bounce back from 'ground'
 			if (p->pos[i].Y < -2.0f)
 			{
@@ -107,6 +107,7 @@ void AppParticlesImport(ecs_world_t *world)
 	ecs_struct(world, {
 	.entity = ecs_id(AppParticlesDesc),
 	.members = {
+	{ .name = "speed", .type = ecs_id(ecs_f32_t) },
 	{ .name = "max_num_particles", .type = ecs_id(ecs_i32_t) },
 	{ .name = "cur_num_particles", .type = ecs_id(ecs_i32_t) },
 	{ .name = "pos", .type = ecs_id(ecs_uptr_t) },

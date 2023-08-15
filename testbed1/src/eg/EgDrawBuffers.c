@@ -10,6 +10,7 @@ ECS_COMPONENT_DECLARE(EgDrawBuffer);
 
 void EgDrawBuffer_OnSet(ecs_iter_t *it)
 {
+	printf("EgDrawBuffer_OnSet\n");
 	EgDrawBuffer *b = ecs_field(it, EgDrawBuffer, 1);
 	for (int i = 0; i < it->count; i ++)
 	{
@@ -68,7 +69,8 @@ void EgDrawBuffersImport(ecs_world_t *world)
 
     ecs_observer(world, {
 		.filter.terms = { 
-			{.id = ecs_id(EgDrawBuffer) },
+			// Use EcsSelf to prevent matching instances of this
+			{.id = ecs_id(EgDrawBuffer), .src.flags = EcsSelf },
 		},
         .events = { EcsOnSet },
         .callback = EgDrawBuffer_OnSet,

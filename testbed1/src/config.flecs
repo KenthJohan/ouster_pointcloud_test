@@ -41,7 +41,11 @@ draw : buffer1 {
 }
 
 particles6 : buffer1 {
-	- app.particles.ParticlesDesc{512 * 1024}
+	- app.particles.ParticlesDesc{-0.1, 512 * 1024}
+}
+
+particles1 : buffer1 {
+	- app.particles.ParticlesDesc{0.5, 512 * 1024}
 }
 
 
