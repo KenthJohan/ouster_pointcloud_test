@@ -1,6 +1,7 @@
 #include "AppParticles.h"
 #include "EgBasics.h"
 #include "EgDrawBuffers.h"
+#include "EgQuantities.h"
 #include "sokol_gfx.h"
 #include <stdio.h>
 
@@ -12,10 +13,12 @@ ECS_COMPONENT_DECLARE(AppParticlesDesc);
 
 void SystemParticleEmit(ecs_iter_t *it)
 {
-	AppParticlesDesc *particles = ecs_field(it, AppParticlesDesc, 1);
+	AppParticlesDesc *particles_pos = ecs_field(it, AppParticlesDesc, 1);
+	EgVelocity_V3F32 *particles_vel = ecs_field(it, EgVelocity_V3F32, 2);
 	for (int j = 0; j < it->count; j ++)
 	{
-		AppParticlesDesc * p = particles + j;
+		AppParticlesDesc * p = particles_pos + j;
+		EgVelocity_V3F32 * v = particles_vel + j;
 		// emit new particles
 		for (int i = 0; i < NUM_PARTICLES_EMITTED_PER_FRAME; i++)
 		{
@@ -26,6 +29,9 @@ void SystemParticleEmit(ecs_iter_t *it)
 					((float)(rand() & 0x7FFF) / 0x7FFF) - 0.5f,
 					((float)(rand() & 0x7FFF) / 0x7FFF) * 0.5f + 2.0f,
 					((float)(rand() & 0x7FFF) / 0x7FFF) - 0.5f);
+				p->vel[p->cur_num_particles].X *= v->dx;
+				p->vel[p->cur_num_particles].Y *= v->dy;
+				p->vel[p->cur_num_particles].Z *= v->dz;
 				p->cur_num_particles++;
 			}
 			else
@@ -47,9 +53,9 @@ void SystemParticleUpdate(ecs_iter_t *it)
 		for (int i = 0; i < p->cur_num_particles; i++)
 		{
 			p->vel[i].Y -= 1.0f * it->delta_time;
-			p->pos[i].X += p->vel[i].X * it->delta_time * p->speed;;
-			p->pos[i].Y += p->vel[i].Y * it->delta_time * p->speed;;
-			p->pos[i].Z += p->vel[i].Z * it->delta_time * p->speed;;
+			p->pos[i].X += p->vel[i].X * it->delta_time;
+			p->pos[i].Y += p->vel[i].Y * it->delta_time;
+			p->pos[i].Z += p->vel[i].Z * it->delta_time;
 			// bounce back from 'ground'
 			if (p->pos[i].Y < -2.0f)
 			{
@@ -66,6 +72,7 @@ void SystemParticleUpdate(ecs_iter_t *it)
 
 void SystemParticleAllocate(ecs_iter_t *it)
 {
+	printf("SystemParticleAllocate\n");
 	AppParticlesDesc *particles = ecs_field(it, AppParticlesDesc, 1);
 	for (int j = 0; j < it->count; j ++)
 	{
@@ -80,17 +87,20 @@ void SystemParticleAllocate(ecs_iter_t *it)
 
 void SystemAppendBuffer(ecs_iter_t *it)
 {
-    //printf("SystemAppendBuffer %s\n", ecs_get_name(it->world, ecs_field_src(it, 1)));
-	AppParticlesDesc *particles = ecs_field(it, AppParticlesDesc, 1);
-	EgDrawBuffer *buffer = ecs_field(it, EgDrawBuffer, 2);
-	for (int i = 0; i < it->count; i ++)
+	while (ecs_query_next(it))
 	{
-		AppParticlesDesc *p = particles + i;
-		EgDrawBuffer *b = buffer + i;
-
-		sg_range r = {p->pos, p->cur_num_particles * sizeof(hmm_vec3)};
-		sg_append_buffer(b[i].buffer, &r);
-		b->num_instances += p->cur_num_particles;
+		//printf("SystemAppendBuffer %s\n", ecs_get_name(it->world, ecs_field_src(it, 1)));
+		AppParticlesDesc *f1_particles = ecs_field(it, AppParticlesDesc, 1); // EcsSelf
+		EgDrawBuffer *f2_buffer = ecs_field(it, EgDrawBuffer, 2); // EcsUp
+		ecs_assert(ecs_field_is_self(it, 1) == true, ECS_INVALID_OPERATION, 0);
+		ecs_assert(ecs_field_is_self(it, 2) == false, ECS_INVALID_OPERATION, 0);
+		ecs_assert(sizeof(hmm_vec3) == f2_buffer->esize, ECS_INVALID_OPERATION, 0);
+		f2_buffer->count = 0;
+		for (int i = 0; i < it->count; i ++)
+		{
+			AppParticlesDesc *p = f1_particles + i;
+			EgDrawBuffer_append(f2_buffer, p->pos, p->cur_num_particles);
+		}
 	}
 }
 
@@ -101,13 +111,13 @@ void AppParticlesImport(ecs_world_t *world)
 	ecs_set_name_prefix(world, "App");
 	ECS_IMPORT(world, EgBasics);
 	ECS_IMPORT(world, EgDrawBuffers);
+	ECS_IMPORT(world, EgQuantities);
 
 	ECS_COMPONENT_DEFINE(world, AppParticlesDesc);
 
 	ecs_struct(world, {
 	.entity = ecs_id(AppParticlesDesc),
 	.members = {
-	{ .name = "speed", .type = ecs_id(ecs_f32_t) },
 	{ .name = "max_num_particles", .type = ecs_id(ecs_i32_t) },
 	{ .name = "cur_num_particles", .type = ecs_id(ecs_i32_t) },
 	{ .name = "pos", .type = ecs_id(ecs_uptr_t) },
@@ -115,7 +125,7 @@ void AppParticlesImport(ecs_world_t *world)
 	}
 	});
 
-    ECS_SYSTEM(world, SystemParticleEmit, EcsOnUpdate, AppParticlesDesc);
+    ECS_SYSTEM(world, SystemParticleEmit, EcsOnUpdate, AppParticlesDesc, EgVelocity_V3F32);
     ECS_SYSTEM(world, SystemParticleUpdate, EcsOnUpdate, AppParticlesDesc);
     ECS_OBSERVER(world, SystemParticleAllocate, EcsOnSet, AppParticlesDesc);
 
@@ -128,9 +138,9 @@ void AppParticlesImport(ecs_world_t *world)
 		}),
 		.query.filter.terms = {
 			{.id = ecs_id(AppParticlesDesc), .inout = EcsInOut },
-			{.id = ecs_id(EgDrawBuffer), .inout = EcsInOut },
+			{.id = ecs_id(EgDrawBuffer), .inout = EcsInOut, .src.flags = EcsUp },
 		},
-		.callback = SystemAppendBuffer
+		.run = SystemAppendBuffer
 	});
 
 

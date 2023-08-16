@@ -106,7 +106,8 @@ void SystemDraw(ecs_iter_t *it)
 			bind.vertex_buffers[1] = b->buffer;
             sg_apply_bindings(&bind);
             sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
-            sg_draw(0, 24, b->num_instances);
+            sg_draw(0, 24, b->count);
+			b->count = 0;
         }
         else
         {

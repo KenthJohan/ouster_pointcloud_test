@@ -5,7 +5,18 @@
 ECS_COMPONENT_DECLARE(EgDrawBuffer);
 
 
-
+int EgDrawBuffer_append(EgDrawBuffer * buf, void * data, ecs_i32_t count)
+{
+	buf->count += count;
+	if(buf->count > buf->cap)
+	{
+		buf->count -= count;
+		return 0;
+	}
+	sg_range r = {data, count * buf->esize};
+	sg_append_buffer(buf->buffer, &r);
+	return count;
+}
 
 
 void EgDrawBuffer_OnSet(ecs_iter_t *it)
@@ -15,7 +26,7 @@ void EgDrawBuffer_OnSet(ecs_iter_t *it)
 	for (int i = 0; i < it->count; i ++)
 	{
 		b[i].buffer = sg_make_buffer(&(sg_buffer_desc){
-			.size = b[i].size,
+			.size = b[i].cap * b[i].esize,
 			.usage = SG_USAGE_STREAM,
 			.label = "instance-data"
 		});
@@ -59,8 +70,9 @@ void EgDrawBuffersImport(ecs_world_t *world)
 	ecs_struct(world, {
 	.entity = ecs_id(EgDrawBuffer),
 	.members = {
-	{ .name = "size", .type = ecs_id(ecs_i32_t) },
-	{ .name = "num_instances", .type = ecs_id(ecs_i32_t) },
+	{ .name = "cap", .type = ecs_id(ecs_i32_t) },
+	{ .name = "esize", .type = ecs_id(ecs_i32_t) },
+	{ .name = "count", .type = ecs_id(ecs_i32_t) },
 	{ .name = "buffer", .type = ecs_id(ecs_i32_t) },
 	{ .name = "buffer_verts", .type = ecs_id(ecs_i32_t) },
 	{ .name = "buffer_index", .type = ecs_id(ecs_i32_t) },

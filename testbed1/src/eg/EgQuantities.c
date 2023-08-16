@@ -181,6 +181,15 @@ void EgQuantitiesImport(ecs_world_t *world)
 	});
 
 	ecs_struct(world, {
+	.entity = ecs_id(EgVelocity_V3F32),
+	.members = {
+	{ .name = "dx", .type = ecs_id(ecs_f32_t) },
+	{ .name = "dy", .type = ecs_id(ecs_f32_t) },
+	{ .name = "dz", .type = ecs_id(ecs_f32_t) },
+	}
+	});
+
+	ecs_struct(world, {
 	.entity = ecs_id(EgPositionGlobal_V2F32),
 	.members = {
 	{ .name = "x", .type = ecs_id(ecs_f32_t) },

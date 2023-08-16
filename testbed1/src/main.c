@@ -19,6 +19,7 @@
 #include "EgBasics.h"
 #include "EgRendering.h"
 #include "EgDrawBuffers.h"
+#include "EgQuantities.h"
 #include "AppDrawing.h"
 #include "AppParticles.h"
 
@@ -44,6 +45,7 @@ void init(void) {
     __dbgui_setup(sapp_sample_count());
 
     world = ecs_init();
+    ECS_IMPORT(world, FlecsMonitor);
     ECS_IMPORT(world, EgBasics);
     ECS_IMPORT(world, EgStr);
     ECS_IMPORT(world, EgShaders);
@@ -52,6 +54,7 @@ void init(void) {
     ECS_IMPORT(world, EgFetcher);
     ECS_IMPORT(world, EgRendering);
     ECS_IMPORT(world, EgDrawBuffers);
+    ECS_IMPORT(world, EgQuantities);
     ECS_IMPORT(world, AppDrawing);
     ECS_IMPORT(world, AppParticles);
 
@@ -62,7 +65,7 @@ void init(void) {
 
 void frame(void) {
     frame_number++;
-    printf("%ju\n", frame_number);
+    //printf("%ju\n", frame_number);
     ecs_progress(world, 0);
 }
 
