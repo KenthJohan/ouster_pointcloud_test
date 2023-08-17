@@ -2,7 +2,7 @@
 #include "eg_basics.h"
 #include <math.h>
 #include <stdio.h>
-
+#include <stdlib.h>
 
 
 #define FLOG(...) fprintf(__VA_ARGS__)

@@ -1,6 +1,6 @@
 #include "EgDrawBuffers.h"
 #include "sokol_gfx.h"
-
+#include <stdio.h>
 
 ECS_COMPONENT_DECLARE(EgDrawBuffer);
 

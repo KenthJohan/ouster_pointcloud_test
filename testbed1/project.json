@@ -2,11 +2,7 @@
     "id": "testbed1",
     "type": "application",
     "value": {
-        "author": "Jane Doe",
-        "description": "Coding tutorials for movie stars",
-        "use": [
-            "flecs"
-        ],
+        "use": ["flecs"],
         "public": false
     },
     "lang.c": {

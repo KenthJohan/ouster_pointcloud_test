@@ -53,6 +53,7 @@
         "appparticles.h": "c",
         "eg_sokol_populate.h": "c",
         "egdrawbuffers.h": "c",
-        "egquantities.h": "c"
+        "egquantities.h": "c",
+        "stdlib.h": "c"
     }
 }

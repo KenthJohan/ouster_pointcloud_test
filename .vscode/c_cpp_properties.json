@@ -3,10 +3,8 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}",
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/",
-                "${workspaceFolder}/../bake/include"
+                "${workspaceFolder}/testbed1/**",
+                "${HOME}/bake/include"
             ],
             "defines": [
                 "_DEBUG",
