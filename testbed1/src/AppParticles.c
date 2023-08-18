@@ -5,9 +5,37 @@
 #include "sokol_gfx.h"
 #include <stdio.h>
 
+//https://github.com/floooh/sokol-samples/blob/master/sapp/instancing-sapp.c
 
 ECS_COMPONENT_DECLARE(AppParticlesDesc);
 
+
+void bounce(hmm_vec3 * pos, hmm_vec3 * vel, int n, float d)
+{
+	for (int i = 0; i < n; i++)
+	{
+		vel[i].Y -= 1.0f * d;
+		pos[i].X += vel[i].X * d;
+		pos[i].Y += vel[i].Y * d;
+		pos[i].Z += vel[i].Z * d;
+		// bounce back from 'ground'
+		float b = pos[i].Y < -2.0f;
+		vel[i].X = vel[i].X * (1-b) + vel[i].X * 0.8f * b;
+		vel[i].Y = vel[i].Y * (1-b) + vel[i].Y * -0.8f * b;
+		vel[i].Z = vel[i].Z * (1-b) + vel[i].Z * 0.8f * b;
+		pos[i].Y = pos[i].Y * (1-b) + -1.8f * b;
+		/*
+		if (b)
+		{
+			pos[i].Y = -1.8f;
+			vel[i].Y = -vel[i].Y;
+			vel[i].X *= 0.8f;
+			vel[i].Y *= 0.8f;
+			vel[i].Z *= 0.8f;
+		}
+		*/
+	}
+}
 
 
 
@@ -43,29 +71,16 @@ void SystemParticleEmit(ecs_iter_t *it)
 }
 
 
+
+
+
 void SystemParticleUpdate(ecs_iter_t *it)
 {
 	AppParticlesDesc *particles = ecs_field(it, AppParticlesDesc, 1);
 	for (int j = 0; j < it->count; j ++)
 	{
 		AppParticlesDesc * p = particles + j;
-		// update particle positions
-		for (int i = 0; i < p->cur_num_particles; i++)
-		{
-			p->vel[i].Y -= 1.0f * it->delta_time;
-			p->pos[i].X += p->vel[i].X * it->delta_time;
-			p->pos[i].Y += p->vel[i].Y * it->delta_time;
-			p->pos[i].Z += p->vel[i].Z * it->delta_time;
-			// bounce back from 'ground'
-			if (p->pos[i].Y < -2.0f)
-			{
-				p->pos[i].Y = -1.8f;
-				p->vel[i].Y = -p->vel[i].Y;
-				p->vel[i].X *= 0.8f;
-				p->vel[i].Y *= 0.8f;
-				p->vel[i].Z *= 0.8f;
-			}
-		}
+		bounce(p->pos, p->vel, p->cur_num_particles, it->delta_time);
 	}
 }
 
